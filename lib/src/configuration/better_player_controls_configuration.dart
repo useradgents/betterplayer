@@ -76,8 +76,8 @@ class BetterPlayerControlsConfiguration {
   final Duration controlsHideTime;
 
   ///Parameter used to build custom controls
-  final Widget Function(BetterPlayerController controller,
-      Function(bool) onPlayerVisibilityChanged)? customControlsBuilder;
+  final Widget Function(BetterPlayerController controller, Function(bool) onPlayerVisibilityChanged)?
+      customControlsBuilder;
 
   ///Parameter used to change theme of the player
   final BetterPlayerTheme? playerTheme;
@@ -137,6 +137,9 @@ class BetterPlayerControlsConfiguration {
   ///Icon of the audios menu item from overflow menu
   final IconData audioTracksIcon;
 
+  ///Icon of the screen cast menu item from overflow menu
+  final IconData screenCastIcon;
+
   ///Color of overflow menu icons
   final Color overflowMenuIconsColor;
 
@@ -163,6 +166,9 @@ class BetterPlayerControlsConfiguration {
 
   ///Enable middle replay button - Android only option.
   final bool enableReplay;
+
+  /// Enable Chromecast or Airplay
+  final bool enableScreenCast;
 
   const BetterPlayerControlsConfiguration({
     this.controlBarColor = Colors.black87,
@@ -217,6 +223,8 @@ class BetterPlayerControlsConfiguration {
     this.overflowModalColor = Colors.white,
     this.overflowModalTextColor = Colors.black,
     this.enableReplay = true,
+    this.enableScreenCast = true,
+    this.screenCastIcon = Icons.cast,
   });
 
   factory BetterPlayerControlsConfiguration.white() {

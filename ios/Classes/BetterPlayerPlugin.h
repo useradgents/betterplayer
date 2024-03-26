@@ -11,6 +11,8 @@
 #import "BetterPlayer.h"
 #import <MediaPlayer/MediaPlayer.h>
 
+@class SharePlatformViewFactory;
+
 @interface BetterPlayerPlugin : NSObject <FlutterPlugin, FlutterPlatformViewFactory>
 
 #ifdef BETTER_PLAYER_FLUTTER_TEXTURE

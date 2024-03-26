@@ -7,6 +7,7 @@
 #import <AVKit/AVKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <GLKit/GLKit.h>
+#import <MediaPlayer/MediaPlayer.h>
 #import "BetterPlayerTimeUtils.h"
 #import "BetterPlayerView.h"
 #import "BetterPlayerEzDrmAssetsLoaderDelegate.h"
@@ -28,6 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface BetterPlayer : NSObject <FlutterPlatformView, FlutterStreamHandler, AVPictureInPictureControllerDelegate>
 #endif
 @property(readonly, nonatomic) AVPlayer* player;
+@property(readonly, nonatomic) AVRoutePickerView *routePickerView;
 #ifdef BETTER_PLAYER_FLUTTER_TEXTURE
 @property(readonly, nonatomic) AVPlayerItemVideoOutput* videoOutput;
 @property(readonly, nonatomic) CADisplayLink* displayLink;
@@ -76,6 +78,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) enablePictureInPicture: (CGRect) frame;
 - (void)setPictureInPicture:(BOOL)pictureInPicture;
 - (void)disablePictureInPicture;
+- (void)showAirPlaySelector;
 - (int64_t)absolutePosition;
 - (int64_t) FLTCMTimeToMillis:(CMTime) time;
 

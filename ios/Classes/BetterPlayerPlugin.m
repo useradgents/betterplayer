@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #import "BetterPlayerPlugin.h"
+#import "SharePlatformViewFactory.h"
 #import <better_player/better_player-Swift.h>
 #ifdef BETTER_PLAYER_FLUTTER_TEXTURE
 #import "FrameUpdater.h"
@@ -18,6 +19,7 @@ NSMutableDictionary* _dataSourceDict;
 NSMutableDictionary*  _timeObserverIdDict;
 NSMutableDictionary*  _artworkImageDict;
 CacheManager* _cacheManager;
+
 int texturesCount = -1;
 BetterPlayer* _notificationPlayer;
 bool _remoteCommandsInitialized = false;
@@ -26,13 +28,15 @@ bool _remoteCommandsInitialized = false;
 #pragma mark - FlutterPlugin protocol
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     FlutterMethodChannel* channel =
-    [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
-                                binaryMessenger:[registrar messenger]];
+    [FlutterMethodChannel methodChannelWithName:@"better_player_channel" binaryMessenger:[registrar messenger]];
+
     BetterPlayerPlugin* instance = [[BetterPlayerPlugin alloc] initWithRegistrar:registrar];
     [registrar addMethodCallDelegate:instance channel:channel];
 #ifdef BETTER_PLAYER_UIKITVIEW
     [registrar publish:instance];
 #else
+    SharePlatformViewFactory* factory = [[SharePlatformViewFactory alloc] initWithMessenger:[registrar messenger]];
+    [registrar registerViewFactory:factory withId:@"airplay_route_picker_view"];
     [registrar registerViewFactory:instance withId:@"com.jhomlala/better_player"];
 #endif
 }
@@ -298,8 +302,6 @@ bool _remoteCommandsInitialized = false;
 
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
-
-
     if ([@"init" isEqualToString:call.method]) {
         // Allow audio playback when the Ring/Silent switch is set to silent
         for (NSNumber* textureId in _players) {
@@ -501,6 +503,8 @@ bool _remoteCommandsInitialized = false;
                 }
             }
             result(nil);
+        } else if ([@"launchScreenCast" isEqualToString:call.method]){
+            [player showAirPlaySelector];
         } else {
             result(FlutterMethodNotImplemented);
         }

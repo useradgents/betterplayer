@@ -5,14 +5,7 @@
 #import "BetterPlayerPlugin.h"
 #import "SharePlatformViewFactory.h"
 #import <better_player/better_player-Swift.h>
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
 #import "FrameUpdater.h"
-#endif
-
-#if !__has_feature(objc_arc)
-#error Code Requires ARC.
-#endif
-
 
 @implementation BetterPlayerPlugin
 NSMutableDictionary* _dataSourceDict;
@@ -32,21 +25,17 @@ bool _remoteCommandsInitialized = false;
 
     BetterPlayerPlugin* instance = [[BetterPlayerPlugin alloc] initWithRegistrar:registrar];
     [registrar addMethodCallDelegate:instance channel:channel];
-#ifdef BETTER_PLAYER_UIKITVIEW
-    [registrar publish:instance];
-#else
+
     SharePlatformViewFactory* factory = [[SharePlatformViewFactory alloc] initWithMessenger:[registrar messenger]];
     [registrar registerViewFactory:factory withId:@"airplay_route_picker_view"];
     [registrar registerViewFactory:instance withId:@"com.jhomlala/better_player"];
-#endif
 }
 
 - (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
-#if !defined(BETTER_PLAYER_UIKITVIEW)
+
     _registry = [registrar textures];
-#endif
     _messenger = [registrar messenger];
     _registrar = registrar;
     _players = [NSMutableDictionary dictionaryWithCapacity:1];
@@ -80,24 +69,12 @@ bool _remoteCommandsInitialized = false;
 }
 
 #pragma mark - BetterPlayerPlugin class
-#if !defined(BETTER_PLAYER_FLUTTER_TEXTURE)
-- (int)newTextureId {
-    texturesCount += 1;
-    return texturesCount;
-}
-#endif
 
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
 - (void)onPlayerSetup:(BetterPlayer*)player
          frameUpdater:(FrameUpdater*)frameUpdater
                result:(FlutterResult)result {
   int64_t textureId = [_registry registerTexture:player];
   frameUpdater.textureId = textureId;
-#else
-  - (void)onPlayerSetup:(BetterPlayer*)player
-                 result:(FlutterResult)result {
-      int64_t textureId = [self newTextureId];
-#endif
     FlutterEventChannel* eventChannel = [FlutterEventChannel
                                          eventChannelWithName:[NSString stringWithFormat:@"better_player_channel/videoEvents%lld",
                                                                textureId]
@@ -159,7 +136,7 @@ bool _remoteCommandsInitialized = false;
     }
 
     [commandCenter.togglePlayPauseCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-        if (_notificationPlayer != [NSNull null]){
+        if ([_notificationPlayer isEqual:[NSNull null]]) {
             if (_notificationPlayer.isPlaying){
                 _notificationPlayer.eventSink(@{@"event" : @"play"});
             } else {
@@ -170,14 +147,14 @@ bool _remoteCommandsInitialized = false;
     }];
 
     [commandCenter.playCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-        if (_notificationPlayer != [NSNull null]){
+        if (![_notificationPlayer isEqual:[NSNull null]]) {
             _notificationPlayer.eventSink(@{@"event" : @"play"});
         }
         return MPRemoteCommandHandlerStatusSuccess;
     }];
 
     [commandCenter.pauseCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-        if (_notificationPlayer != [NSNull null]){
+            if (![_notificationPlayer isEqual:[NSNull null]]) {
             _notificationPlayer.eventSink(@{@"event" : @"pause"});
         }
         return MPRemoteCommandHandlerStatusSuccess;
@@ -187,11 +164,11 @@ bool _remoteCommandsInitialized = false;
 
     if (@available(iOS 9.1, *)) {
         [commandCenter.changePlaybackPositionCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
-            if (_notificationPlayer != [NSNull null]){
-                MPChangePlaybackPositionCommandEvent * playbackEvent = (MPChangePlaybackRateCommandEvent * ) event;
+            if (![_notificationPlayer isEqual:[NSNull null]]) {
+                MPChangePlaybackPositionCommandEvent *playbackEvent = (MPChangePlaybackRateCommandEvent *) event;
                 CMTime time = CMTimeMake(playbackEvent.positionTime, 1);
-                int64_t millis = [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
-                [_notificationPlayer seekTo: millis];
+                int millis = [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
+                [_notificationPlayer seekTo:millis];
                 _notificationPlayer.eventSink(@{@"event" : @"seek", @"position": @(millis)});
             }
             return MPRemoteCommandHandlerStatusSuccess;
@@ -212,11 +189,11 @@ bool _remoteCommandsInitialized = false;
                                                   MPNowPlayingInfoPropertyPlaybackRate: @1,
     } mutableCopy];
 
-    if (imageUrl != [NSNull null]){
+    if (![imageUrl isEqual:[NSNull null]]) {
         NSString* key =  [self getTextureId:player];
         MPMediaItemArtwork* artworkImage = [_artworkImageDict objectForKey:key];
 
-        if (key != [NSNull null]){
+        if (![key isEqual:[NSNull null]]) {
             if (artworkImage){
                 [nowPlayingInfoDict setObject:artworkImage forKey:MPMediaItemPropertyArtwork];
                 [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = nowPlayingInfoDict;
@@ -232,8 +209,7 @@ bool _remoteCommandsInitialized = false;
                             NSURL *nsImageUrl =[NSURL URLWithString:imageUrl];
                             tempArtworkImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:nsImageUrl]];
                         }
-                        if(tempArtworkImage)
-                        {
+                        if(tempArtworkImage) {
                             MPMediaItemArtwork* artworkImage = [[MPMediaItemArtwork alloc] initWithImage: tempArtworkImage];
                             [_artworkImageDict setObject:artworkImage forKey:key];
                             [nowPlayingInfoDict setObject:artworkImage forKey:MPMediaItemPropertyArtwork];
@@ -305,23 +281,16 @@ bool _remoteCommandsInitialized = false;
     if ([@"init" isEqualToString:call.method]) {
         // Allow audio playback when the Ring/Silent switch is set to silent
         for (NSNumber* textureId in _players) {
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
             [_registry unregisterTexture:[textureId unsignedIntegerValue]];
-#endif
             [_players[textureId] dispose];
         }
 
         [_players removeAllObjects];
         result(nil);
     } else if ([@"create" isEqualToString:call.method]) {
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
         FrameUpdater* frameUpdater = [[FrameUpdater alloc] initWithRegistry:_registry];
         BetterPlayer* player = [[BetterPlayer alloc] initWithFrameUpdater:frameUpdater];
         [self onPlayerSetup:player frameUpdater:frameUpdater result:result];
-#else
-        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero];
-        [self onPlayerSetup:player result:result];
-#endif
     } else {
         NSDictionary* argsMap = call.arguments;
         int64_t textureId = ((NSNumber*)argsMap[@"textureId"]).unsignedIntegerValue;
@@ -329,9 +298,7 @@ bool _remoteCommandsInitialized = false;
         if ([@"setDataSource" isEqualToString:call.method]) {
             [player clear];
             // This call will clear cached frame because we will return transparent frame
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
             [_registry textureFrameAvailable:textureId];
-#endif
 
             NSDictionary* dataSource = argsMap[@"dataSource"];
             [_dataSourceDict setObject:dataSource forKey:[self getTextureId:player]];
@@ -359,7 +326,7 @@ bool _remoteCommandsInitialized = false;
                 }
             }
 
-            if (headers == [NSNull null] || headers == NULL){
+            if ([headers isEqual:[NSNull null]] || headers == NULL){
                 headers = @{};
             }
 
@@ -382,9 +349,8 @@ bool _remoteCommandsInitialized = false;
             [player clear];
             [self disposeNotificationData:player];
             [self setRemoteCommandsNotificationNotActive];
-#ifdef BETTER_PLAYER_FLUTTER_TEXTURE
             [_registry unregisterTexture:textureId];
-#endif
+
             [_players removeObjectForKey:@(textureId)];
             // If the Flutter contains https://github.com/flutter/engine/pull/12695,
             // the `player` is disposed via `onTextureUnregistered` at the right time.
@@ -432,8 +398,7 @@ bool _remoteCommandsInitialized = false;
             int width = [argsMap[@"width"] intValue];
             int height = [argsMap[@"height"] intValue];
             int bitrate = [argsMap[@"bitrate"] intValue];
-
-            [player setTrackParameters:width: height : bitrate];
+            [player setTrackParametersWithWidth:width height:height bitrate:bitrate];
             result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
             double left = [argsMap[@"left"] doubleValue];
@@ -467,19 +432,18 @@ bool _remoteCommandsInitialized = false;
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
             
-            if (headers == [ NSNull null ]){
+            if ([headers isEqual:[NSNull null]]) {
                 headers = @{};
             }
-            if (videoExtension == [NSNull null]){
+            if ([videoExtension isEqual:[NSNull null]]) {
                 videoExtension = nil;
             }
             
-            if (urlArg != [NSNull null]){
+            if ([urlArg isEqual:[NSNull null]]) {
                 NSURL* url = [NSURL URLWithString:urlArg];
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
                     [_cacheManager setMaxCacheSize:maxCacheSize];
-                    [_cacheManager preCacheURL:url cacheKey:cacheKey videoExtension:videoExtension withHeaders:headers completionHandler:^(BOOL success){
-                    }];
+                    [_cacheManager preCacheURL:url cacheKey:cacheKey videoExtension:videoExtension withHeaders:headers completionHandler:^(BOOL success) {}];
                 } else {
                     NSLog(@"Pre cache is not supported for given data source.");
                 }
@@ -492,19 +456,15 @@ bool _remoteCommandsInitialized = false;
             NSString* urlArg = argsMap[@"url"];
             NSString* cacheKey = argsMap[@"cacheKey"];
             NSString* videoExtension = argsMap[@"videoExtension"];
-            if (urlArg != [NSNull null]){
+            if ([urlArg isEqual:[NSNull null]]) {
                 NSURL* url = [NSURL URLWithString:urlArg];
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
-                    [_cacheManager stopPreCache:url cacheKey:cacheKey
-                              completionHandler:^(BOOL success){
-                    }];
+                    [_cacheManager stopPreCache:url cacheKey:cacheKey completionHandler:^(BOOL success) {}];
                 } else {
                     NSLog(@"Stop pre cache is not supported for given data source.");
                 }
             }
             result(nil);
-        } else if ([@"launchScreenCast" isEqualToString:call.method]){
-            [player showAirPlaySelector];
         } else {
             result(FlutterMethodNotImplemented);
         }

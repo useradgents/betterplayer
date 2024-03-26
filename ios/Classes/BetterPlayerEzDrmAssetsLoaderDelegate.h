@@ -6,7 +6,7 @@
 #import <AVKit/AVKit.h>
 #import <AVFoundation/AVFoundation.h>
 
-@interface BetterPlayerEzDrmAssetsLoaderDelegate : NSObject
+@interface BetterPlayerEzDrmAssetsLoaderDelegate: NSObject<AVAssetResourceLoaderDelegate>
 
 @property(readonly, nonatomic) NSURL* certificateURL;
 @property(readonly, nonatomic) NSURL* licenseURL;

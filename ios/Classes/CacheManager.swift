@@ -211,12 +211,7 @@ extension CacheManager: CachingPlayerItemDelegate {
         self.completionHandler?(true)
     }
 
-     func playerItem(_ playerItem: CachingPlayerItem, didDownloadBytesSoFar bytesDownloaded: Int, outOf bytesExpected: Int){
-        /// Is called every time a new portion of data is received.
-        let percentage = Double(bytesDownloaded)/Double(bytesExpected)*100.0
-        let str = String(format: "%.1f%%", percentage)
-        //NSLog("Downloading... %@", str)
-    }
+    func playerItem(_ playerItem: CachingPlayerItem, didDownloadBytesSoFar bytesDownloaded: Int, outOf bytesExpected: Int) {}
 
     func playerItem(_ playerItem: CachingPlayerItem, downloadingFailedWith error: Error){
         /// Is called on downloading error.

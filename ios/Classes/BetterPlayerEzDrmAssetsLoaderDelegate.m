@@ -29,7 +29,7 @@ NSString * DEFAULT_LICENSE_SERVER_URL = @"https://fps.ezdrm.com/api/licenses/";
     NSURLResponse * response;
     
     NSURL * finalLicenseURL;
-    if (_licenseURL != [NSNull null]){
+    if (![_licenseURL isEqual:[NSNull null]]) {
         finalLicenseURL = _licenseURL;
     } else {
         finalLicenseURL = [[NSURL alloc] initWithString: DEFAULT_LICENSE_SERVER_URL];

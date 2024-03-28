@@ -33,6 +33,7 @@ class _HlsSubtitlesPageState extends State<HlsSubtitlesPage> {
       enableSubtitles: true,
       showControlsOnInitialize: true,
       enablePlaybackSpeed: true,
+      enableScreenCast: true,
       controlBarHeight: 40,
       loadingColor: Colors.red,
       overflowModalColor: Colors.black54,

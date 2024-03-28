@@ -13,6 +13,7 @@ class BetterPlayerTranslations {
   final String overflowMenuQuality;
   final String overflowMenuAudioTracks;
   final String qualityAuto;
+  final String screenCast;
 
   BetterPlayerTranslations(
       {this.languageCode = "en",
@@ -27,6 +28,7 @@ class BetterPlayerTranslations {
       this.overflowMenuSubtitles = "Subtitles",
       this.overflowMenuQuality = "Quality",
       this.overflowMenuAudioTracks = "Audio",
+      this.screenCast = "screen Cast",
       this.qualityAuto = "Auto"});
 
   factory BetterPlayerTranslations.polish() => BetterPlayerTranslations(
@@ -41,6 +43,7 @@ class BetterPlayerTranslations {
         overflowMenuSubtitles: "Napisy",
         overflowMenuQuality: "Jakość",
         overflowMenuAudioTracks: "Dźwięk",
+        screenCast : "screen Cast",
         qualityAuto: "Automatycznie",
       );
 
@@ -57,6 +60,7 @@ class BetterPlayerTranslations {
         overflowMenuSubtitles: "字幕",
         overflowMenuQuality: "质量",
         overflowMenuAudioTracks: "音訊",
+        screenCast : "screen Cast",
         qualityAuto: "汽車",
       );
 
@@ -73,6 +77,7 @@ class BetterPlayerTranslations {
         overflowMenuSubtitles: "उपशीर्षक",
         overflowMenuQuality: "गुणवत्ता",
         overflowMenuAudioTracks: "ऑडियो",
+        screenCast : "screen Cast",
         qualityAuto: "ऑटो",
       );
 
@@ -89,6 +94,7 @@ class BetterPlayerTranslations {
         overflowMenuSubtitles: "الترجمة",
         overflowMenuQuality: "الجودة",
         overflowMenuAudioTracks: "الصوت",
+        screenCast : "screen Cast",
         qualityAuto: "ऑटो",
       );
 
@@ -105,6 +111,7 @@ class BetterPlayerTranslations {
       overflowMenuSubtitles: "Altyazı",
       overflowMenuQuality: "Kalite",
       overflowMenuAudioTracks: "Ses",
+      screenCast : "screen Cast",
       qualityAuto: "Otomatik");
 
   factory BetterPlayerTranslations.vietnamese() => BetterPlayerTranslations(
@@ -120,6 +127,7 @@ class BetterPlayerTranslations {
         overflowMenuSubtitles: "Phụ đề",
         overflowMenuQuality: "Chất lượng",
         overflowMenuAudioTracks: "Âm thanh",
+        screenCast : "screen Cast",
         qualityAuto: "Tự động",
       );
 
@@ -135,6 +143,7 @@ class BetterPlayerTranslations {
         overflowMenuPlaybackSpeed: "Velocidad",
         overflowMenuSubtitles: "Subtítulos",
         overflowMenuQuality: "Calidad",
+        screenCast : "screen Cast",
         qualityAuto: "Automática",
       );
 }

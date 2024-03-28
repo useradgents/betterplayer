@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:io';
 import 'package:better_player/src/airplay_route_picker_view.dart';
 import 'package:better_player/src/configuration/better_player_controls_configuration.dart';
 import 'package:better_player/src/controls/better_player_controls_state.dart';
@@ -362,7 +362,45 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
     );
   }
 
-  Widget _buildVideoCast(
+  GestureDetector _buildChromeCastButton(
+    VideoPlayerController? controller,
+    Color backgroundColor,
+    Color iconColor,
+    double barHeight,
+    double iconSize,
+    double buttonPadding,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        //todo add chrome cast action
+      },
+      child: AnimatedOpacity(
+        opacity: controlsNotVisible ? 0.0 : 1.0,
+        duration: _controlsConfiguration.controlsHideTime,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+            ),
+            child: Container(
+              height: barHeight,
+              padding: EdgeInsets.symmetric(
+                horizontal: buttonPadding,
+              ),
+              child: Icon(
+                _controlsConfiguration.screenCastIcon,
+                color: iconColor,
+                size: iconSize,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAirplayWidget(
     Color backgroundColor,
     Color iconColor,
     double barHeight,
@@ -537,9 +575,10 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
             width: 4,
           ),
           if (_controlsConfiguration.enableScreenCast)
+            if(Platform.isIOS)
             Row(
               children: [
-                _buildVideoCast(
+                _buildAirplayWidget(
                   backgroundColor,
                   iconColor,
                   barHeight,
@@ -547,7 +586,15 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
                 ),
                 const SizedBox(width: 4),
               ],
-            ),
+            )
+          else
+              _buildChromeCastButton(
+                _controller,
+                backgroundColor,
+                iconColor,
+                barHeight,
+                iconSize,
+                buttonPadding,),
           if (_controlsConfiguration.enableOverflowMenu)
             _buildMoreButton(
               _controller,

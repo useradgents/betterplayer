@@ -153,6 +153,16 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> startCast(Duration? position) {
+    return _channel.invokeMethod<void>(
+      'cast',
+      <String, dynamic>{
+        'location': position!.inMilliseconds,
+      },
+    );
+  }
+
+  @override
   Future<void> setVolume(int? textureId, double volume) {
     return _channel.invokeMethod<void>(
       'setVolume',

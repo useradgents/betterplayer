@@ -105,6 +105,10 @@ abstract class VideoPlayerPlatform {
   Future<void> pause(int? textureId) {
     throw UnimplementedError('pause() has not been implemented.');
   }
+  /// cast video.
+  Future<void> startCast(Duration? position) {
+    throw UnimplementedError('cast() has not been implemented.');
+  }
 
   /// Sets the volume to a range between 0.0 and 1.0.
   Future<void> setVolume(int? textureId, double volume) {

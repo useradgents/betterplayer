@@ -455,6 +455,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _videoPlayerPlatform.setLooping(_textureId, value.isLooping);
   }
 
+  Future<void> startCast(Duration position) async {
+   await _videoPlayerPlatform.startCast(position);
+  }
+
   Future<void> _applyPlayPause() async {
     if (!_created || _isDisposed) {
       return;
@@ -588,6 +592,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _videoPlayerPlatform.setTrackParameters(
         _textureId, width, height, bitrate);
   }
+
 
   Future<void> enablePictureInPicture(
       {double? top, double? left, double? width, double? height}) async {

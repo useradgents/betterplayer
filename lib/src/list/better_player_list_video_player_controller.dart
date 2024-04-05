@@ -8,6 +8,7 @@ class BetterPlayerListVideoPlayerController {
     _betterPlayerController?.setVolume(volume);
   }
 
+
   void pause() {
     _betterPlayerController?.pause();
   }
@@ -18,6 +19,9 @@ class BetterPlayerListVideoPlayerController {
 
   void seekTo(Duration duration) {
     _betterPlayerController?.seekTo(duration);
+  }
+  void startCast(Duration duration){
+    _betterPlayerController?.startCast(duration);
   }
 
   // ignore: use_setters_to_change_properties

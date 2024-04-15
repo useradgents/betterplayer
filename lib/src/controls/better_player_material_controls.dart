@@ -579,7 +579,7 @@ class _BetterPlayerMaterialControlsState
   ) {
     return BetterPlayerMaterialClickableWidget(
       onTap: () {
-        //todo add chrome cast action
+        _onVideoCast();
       },
       child: AnimatedOpacity(
         opacity: controlsNotVisible ? 0.0 : 1.0,
@@ -717,6 +717,10 @@ class _BetterPlayerMaterialControlsState
         _betterPlayerController!.cancelNextVideoTimer();
       }
     }
+  }
+
+  void _onVideoCast(){
+    _betterPlayerController!.startCast(_latestValue!.position);
   }
 
   void _startHideTimer() {

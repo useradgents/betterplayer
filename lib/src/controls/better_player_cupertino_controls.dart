@@ -12,6 +12,8 @@ import 'package:better_player/src/video_player/video_player.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'dart:developer';
+
 class BetterPlayerCupertinoControls extends StatefulWidget {
   ///Callback used to send information if player bar is hidden or not
   final Function(bool visbility) onControlsVisibilityChanged;
@@ -372,6 +374,7 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
   ) {
     return GestureDetector(
       onTap: () {
+        log('_buildChromeCastButton: methode call');
         _onVideoCast();
       },
       child: AnimatedOpacity(
@@ -522,6 +525,7 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
     double topBarHeight,
     double buttonPadding,
   ) {
+    log('_buildTopBar: methode ios? = ${Platform.isIOS}// android? =${Platform.isAndroid}');
     if (!betterPlayerController!.controlsEnabled) {
       return const SizedBox();
     }

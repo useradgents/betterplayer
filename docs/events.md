@@ -8,6 +8,7 @@ You can listen to video player events like:
   openFullscreen,
   hideFullscreen,
   setVolume,
+  startCast,
   progress,
   finished,
   exception,

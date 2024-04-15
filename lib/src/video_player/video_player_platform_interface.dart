@@ -106,8 +106,8 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('pause() has not been implemented.');
   }
   /// cast video.
-  Future<void> startCast(Duration? position) {
-    throw UnimplementedError('cast() has not been implemented.');
+  Future<void> startCast(Duration? position,int? textureId) {
+    throw UnimplementedError('startCast() has not been implemented.');
   }
 
   /// Sets the volume to a range between 0.0 and 1.0.
@@ -465,6 +465,9 @@ enum VideoEventType {
 
   /// Picture in picture mode has been dismissed
   pipStop,
+
+  ///start video cast
+  startCast,
 
   /// An unknown event has been received.
   unknown,

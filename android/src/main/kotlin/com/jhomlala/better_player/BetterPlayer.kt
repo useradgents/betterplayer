@@ -527,6 +527,7 @@ internal class BetterPlayer(
     }
 
     fun startCast(playbackPosition: Long){
+        Log.e(TAG, "startCast")
         Log.e(TAG, "startCast playbackPosition$playbackPosition")
         val metadata = com.google.android.gms.cast.MediaMetadata(com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE)
         metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_TITLE, "Title")
@@ -545,10 +546,12 @@ internal class BetterPlayer(
     }
 
     fun play() {
+        Log.e(TAG, "play***")
         exoPlayer?.playWhenReady = true
     }
 
     fun pause() {
+        Log.e(TAG, "pause***")
         exoPlayer?.playWhenReady = false
     }
 
@@ -769,7 +772,7 @@ internal class BetterPlayer(
     }
 
     companion object {
-        private const val TAG = "BetterPlayer"
+        private const val TAG = "**BetterPlayer"
         private const val FORMAT_SS = "ss"
         private const val FORMAT_DASH = "dash"
         private const val FORMAT_HLS = "hls"

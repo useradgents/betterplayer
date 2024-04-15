@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'video_player_platform_interface.dart';
+import 'dart:developer';
 
 const MethodChannel _channel = MethodChannel('better_player_channel');
 
@@ -146,6 +147,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<void> pause(int? textureId) {
+
+    log('pause: methode call');
     return _channel.invokeMethod<void>(
       'pause',
       <String, dynamic>{'textureId': textureId},
@@ -153,11 +156,14 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> startCast(Duration? position) {
+  Future<void> startCast(Duration? position,int? textureId) {
+
+    log('startCast: methode call');
     return _channel.invokeMethod<void>(
-      'cast',
+      'startCast',
       <String, dynamic>{
         'location': position!.inMilliseconds,
+        'textureId': textureId,
       },
     );
   }
@@ -334,6 +340,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Stream<VideoEvent> videoEventsFor(int? textureId) {
+
     return _eventChannelFor(textureId)
         .receiveBroadcastStream()
         .map((dynamic event) {
@@ -403,6 +410,13 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.pause,
             key: key,
+          );
+
+        case 'startCast':
+          return VideoEvent(
+            eventType: VideoEventType.startCast,
+            key: key,
+            position: Duration(milliseconds: map['position'] as int),
           );
 
         case 'seek':

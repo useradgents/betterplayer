@@ -237,6 +237,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           }
           break;
 
+        case VideoEventType.startCast:
+          startCast(event.position!);
+          break;
         case VideoEventType.play:
           play();
           break;
@@ -456,7 +459,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   Future<void> startCast(Duration position) async {
-   await _videoPlayerPlatform.startCast(position);
+   await _videoPlayerPlatform.startCast(position,_textureId);
   }
 
   Future<void> _applyPlayPause() async {

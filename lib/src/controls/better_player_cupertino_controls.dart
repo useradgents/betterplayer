@@ -371,11 +371,12 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
     double barHeight,
     double iconSize,
     double buttonPadding,
+    BuildContext context,
   ) {
     return GestureDetector(
       onTap: () {
         log('_buildChromeCastButton: methode call');
-        _onVideoCast();
+        _onVideoCast(context);
       },
       child: AnimatedOpacity(
         opacity: controlsNotVisible ? 0.0 : 1.0,
@@ -598,7 +599,9 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
                 iconColor,
                 barHeight,
                 iconSize,
-                buttonPadding,),
+                buttonPadding,
+                context,
+              ),
           if (_controlsConfiguration.enableOverflowMenu)
             _buildMoreButton(
               _controller,
@@ -745,8 +748,8 @@ class _BetterPlayerCupertinoControlsState extends BetterPlayerControlsState<Bett
     }
   }
 
-  void _onVideoCast(){
-    _betterPlayerController!.startCast(_latestValue!.position);
+  void _onVideoCast( BuildContext context){
+    _betterPlayerController!.startCast(_latestValue!.position,context);
   }
 
   void _startHideTimer() {

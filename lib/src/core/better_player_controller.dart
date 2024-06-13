@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-
+import 'package:flutter/material.dart';
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
@@ -8,8 +8,12 @@ import 'package:better_player/src/subtitles/better_player_subtitle.dart';
 import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
 import 'package:better_player/src/video_player/video_player_platform_interface.dart';
 import 'package:collection/collection.dart' show IterableExtension;
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import '/src/cast/cast_device.dart';
+import '/src/cast/cast_discovery_service.dart';
+import '/src/cast/session.dart';
+import '/src/cast/session_manager.dart';
+import '/src/cast/socket.dart';
 
 ///Class used to control overall Better Player behavior. Main class to change
 ///state of Better Player.
@@ -205,6 +209,8 @@ class BetterPlayerController {
 
   ///Currently displayed [BetterPlayerSubtitle].
   BetterPlayerSubtitle? renderedSubtitle;
+
+  Future<List<CastDevice>>? _future;
 
   BetterPlayerController(
     this.betterPlayerConfiguration, {
@@ -599,14 +605,13 @@ class BetterPlayerController {
     _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
   }
 
-  Future<void> startCast(Duration position) async {
-    if (videoPlayerController == null) {
-      throw StateError("The data source has not been initialized");
-    }
-    if (videoPlayerController?.value.duration == null) {
-      throw StateError("The video has not been initialized yet.");
-    }
-    await videoPlayerController!.startCast(position);
+  Future<void> startCast(Duration position, BuildContext context) async {
+    //todo show dialog
+    _startSearch();
+    _dialogBuilder(context);
+  }
+  void _startSearch() {
+    _future = CastDiscoveryService().search();
   }
   ///Move player to specific position/moment of the video.
   Future<void> seekTo(Duration moment) async {
@@ -1250,4 +1255,131 @@ class BetterPlayerController {
       _tempFiles.forEach((file) => file.delete());
     }
   }
+
+  Future<void> _dialogBuilder(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose cast device'),
+          content:
+          FutureBuilder<List<CastDevice>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error.toString()}',
+                  ),
+                );
+              } else if (!snapshot.hasData) {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              if (snapshot.data!.isEmpty) {
+                return Column(
+                  children: [
+                    Center(
+                      child: Text(
+                        'No Chromecast founded',
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return Column(
+                children: snapshot.data!.map((device) {
+                  return ListTile(
+                    title: Text(device.name),
+                    onTap: () {
+                       _connectAndPlayMedia(context, device);
+                    },
+                  );
+                }).toList(),
+              );
+            },
+          )
+          ,//content end
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _connectAndPlayMedia(BuildContext context, CastDevice object) async {
+    final session = await CastSessionManager().startSession(object);
+
+    session.stateStream.listen((state) {
+      if (state == CastSessionState.connected) {
+        final snackBar = SnackBar(content: Text('Connected'));
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+    });
+
+    var index = 0;
+
+    session.messageStream.listen((message) {
+      index += 1;
+
+      print('receive message: $message');
+
+      if (index == 2) {
+        Future.delayed(Duration(seconds: 5)).then((x) {
+          _sendMessagePlayVideo(session);
+        });
+      }
+    });
+
+    session.sendMessage(CastSession.kNamespaceReceiver, {
+      'type': 'LAUNCH',
+      'appId': 'CC1AD845', // set the appId of your app here
+    });
+  }
+  void _sendMessagePlayVideo(CastSession session) {
+    print('_sendMessagePlayVideo');
+
+    var streamType = "";
+    if (betterPlayerDataSource?.liveStream == true)
+      streamType = 'LIVE';
+    else
+      streamType = 'BUFFERED';
+
+    var message = {
+      // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
+      'contentId': betterPlayerDataSource?.url,
+      'contentType': betterPlayerDataSource?.videoExtension,
+      'streamType': streamType,
+
+      // Title and cover displayed while buffering
+      'metadata': {
+        'type': 0,
+        'metadataType': 0,
+        'title': betterPlayerDataSource?.asmsTrackNames,
+        'images': [
+          {'url': 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg'}
+        ]
+      }
+    };
+
+    session.sendMessage(CastSession.kNamespaceMedia, {
+      'type': 'LOAD',
+      'autoPlay': true,
+      'currentTime': 0,
+      'media': message,
+    });
+  }
+
 }

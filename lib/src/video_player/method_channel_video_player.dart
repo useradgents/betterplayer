@@ -157,7 +157,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<void> startCast(Duration? position,int? textureId) {
-
     log('startCast: methode call');
     return _channel.invokeMethod<void>(
       'startCast',

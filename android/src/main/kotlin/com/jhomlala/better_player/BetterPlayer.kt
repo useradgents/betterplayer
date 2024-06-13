@@ -19,6 +19,10 @@ import android.util.Log
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
+import androidx.mediarouter.media.MediaControlIntent
+import androidx.mediarouter.media.MediaRouteSelector
+import androidx.mediarouter.media.MediaRouter
+import androidx.mediarouter.media.RemotePlaybackClient
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkInfo
@@ -45,11 +49,15 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager.MediaDescripti
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
-import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
 import com.google.android.gms.cast.MediaInfo
-import com.google.android.gms.cast.MediaQueueItem
+import com.google.android.gms.cast.MediaLoadRequestData
+import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManager
+import com.google.android.gms.cast.framework.SessionManagerListener
+import com.google.android.gms.common.images.WebImage
 import com.jhomlala.better_player.DataSourceUtils.getDataSourceFactory
 import com.jhomlala.better_player.DataSourceUtils.getUserAgent
 import com.jhomlala.better_player.DataSourceUtils.isHTTP
@@ -59,12 +67,11 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
-import java.util.concurrent.Executors
 import kotlin.math.max
 import kotlin.math.min
 
 internal class BetterPlayer(
-    context: Context,
+    private val context: Context,
     private val eventChannel: EventChannel,
     private val textureEntry: SurfaceTextureEntry,
     customDefaultLoadControl: CustomDefaultLoadControl?,
@@ -91,6 +98,13 @@ internal class BetterPlayer(
     private var lastSendBufferedPosition = 0L
     private var castPlayer: CastPlayer? = null
     private var currentPlayer: Player? = null
+    private var currentDuration: Long = 0L
+    private var videoClipUrl = ""
+    private var mCastSession: CastSession? = null
+    private lateinit var mCastContext: CastContext
+    private var mSessionManager: SessionManager? = null
+    private val mSessionManagerListener = SessionManagerListenerImpl()
+    private var mSelector: MediaRouteSelector? = null
 
     init {
         val loadBuilder = DefaultLoadControl.Builder()
@@ -108,9 +122,103 @@ internal class BetterPlayer(
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
         setupVideoPlayer(eventChannel, textureEntry, result)
-      //  val castExecutor = Executors.newSingleThreadExecutor()
-//        val castContext = CastContext.getSharedInstance(context, castExecutor).result
-       // castPlayer = CastPlayer(castContext)
+
+        mSelector?.also { selector ->
+            mediaRouter?.addCallback(selector, mediaRouterCallback,
+                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
+        }
+    }
+
+    private var mediaRouter: MediaRouter? = null
+
+    // Variables to hold the currently selected route and its playback client
+    private var mRoute: MediaRouter.RouteInfo? = null
+    private var remotePlaybackClient: RemotePlaybackClient? = null
+
+    private val mediaRouterCallback = object : MediaRouter.Callback() {
+
+        override fun onRouteSelected(router: MediaRouter, route: MediaRouter.RouteInfo,reason: Int) {
+            Log.d(TAG, "onRouteSelected: route=$route")
+            if (route.supportsControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)) {
+                // Stop local playback (if necessary)
+                // ...
+
+                // Save the new route
+                mRoute = route
+
+                if(mRoute !=null) {
+                    // Attach a new playback client
+                    remotePlaybackClient =
+                        RemotePlaybackClient(context, mRoute!!)
+                }
+                // Start remote playback (if necessary)
+                // ...
+            }
+        }
+
+        override fun onRouteUnselected(
+            router: MediaRouter,
+            route: MediaRouter.RouteInfo,
+            reason: Int
+        ) {
+            Log.d(TAG, "onRouteUnselected: route=$route")
+            if (route.supportsControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)) {
+
+                // Changed route: tear down previous client
+                mRoute?.also {
+                    remotePlaybackClient?.release()
+                    remotePlaybackClient = null
+                }
+
+                // Save the new route
+                mRoute = route
+
+                when (reason) {
+                    MediaRouter.UNSELECT_REASON_ROUTE_CHANGED -> {
+                        // Resume local playback (if necessary)
+                        // ...
+                    }
+                }
+            }
+        }
+    }
+
+
+    private inner class SessionManagerListenerImpl : SessionManagerListener<CastSession> {
+        override fun onSessionEnded(p0: CastSession, p1: Int) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionEnded")
+        }
+        override fun onSessionEnding(p0: CastSession) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionEnding")
+        }
+
+        override fun onSessionResumeFailed(p0: CastSession, p1: Int) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionResumeFailed" )
+        }
+
+        override fun onSessionResumed(p0: CastSession, p1: Boolean) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionResumed")
+        }
+
+        override fun onSessionResuming(p0: CastSession, p1: String) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionResuming")
+        }
+
+        override fun onSessionStartFailed(p0: CastSession, p1: Int) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionStartFailed")
+        }
+
+        override fun onSessionStarted(p0: CastSession, p1: String) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionStarted")
+        }
+
+        override fun onSessionStarting(p0: CastSession) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionStarting")
+        }
+
+        override fun onSessionSuspended(p0: CastSession, p1: Int) {
+            Log.e(TAG,"SessionManagerListenerImpl onSessionSuspended")
+        }
 
     }
 
@@ -133,6 +241,8 @@ internal class BetterPlayer(
         this.key = key
         isInitialized = false
         val uri = Uri.parse(dataSource)
+        videoClipUrl = dataSource.orEmpty()
+        Log.d("setDataSource", "dataSource : $dataSource")
         var dataSourceFactory: DataSource.Factory?
         val userAgent = getUserAgent(headers)
         if (licenseUrl != null && licenseUrl.isNotEmpty()) {
@@ -194,12 +304,14 @@ internal class BetterPlayer(
             dataSourceFactory = DefaultDataSource.Factory(context)
         }
         val mediaSource = buildMediaSource(uri, dataSourceFactory, formatHint, cacheKey, context)
+
         if (overriddenDuration != 0L) {
             val clippingMediaSource = ClippingMediaSource(mediaSource, 0, overriddenDuration * 1000)
             exoPlayer?.setMediaSource(clippingMediaSource)
         } else {
             exoPlayer?.setMediaSource(mediaSource)
         }
+        currentDuration = exoPlayer?.duration ?: 0
         exoPlayer?.prepare()
         result.success(null)
     }
@@ -413,6 +525,7 @@ internal class BetterPlayer(
                     setDrmSessionManagerProvider(drmSessionManagerProvider!!)
                 }
             }.createMediaSource(mediaItem)
+
             C.CONTENT_TYPE_DASH -> DashMediaSource.Factory(
                 DefaultDashChunkSource.Factory(mediaDataSourceFactory),
                 DefaultDataSource.Factory(context, mediaDataSourceFactory)
@@ -421,12 +534,14 @@ internal class BetterPlayer(
                     setDrmSessionManagerProvider(drmSessionManagerProvider!!)
                 }
             }.createMediaSource(mediaItem)
+
             C.CONTENT_TYPE_HLS -> HlsMediaSource.Factory(mediaDataSourceFactory)
                 .apply {
                     if (drmSessionManagerProvider != null) {
                         setDrmSessionManagerProvider(drmSessionManagerProvider!!)
                     }
                 }.createMediaSource(mediaItem)
+
             C.CONTENT_TYPE_OTHER -> ProgressiveMediaSource.Factory(
                 mediaDataSourceFactory,
                 DefaultExtractorsFactory()
@@ -435,6 +550,7 @@ internal class BetterPlayer(
                     setDrmSessionManagerProvider(drmSessionManagerProvider!!)
                 }
             }.createMediaSource(mediaItem)
+
             else -> {
                 throw IllegalStateException("Unsupported type: $type")
             }
@@ -466,6 +582,7 @@ internal class BetterPlayer(
                         event["event"] = "bufferingStart"
                         eventSink.success(event)
                     }
+
                     Player.STATE_READY -> {
                         if (!isInitialized) {
                             isInitialized = true
@@ -475,12 +592,14 @@ internal class BetterPlayer(
                         event["event"] = "bufferingEnd"
                         eventSink.success(event)
                     }
+
                     Player.STATE_ENDED -> {
                         val event: MutableMap<String, Any?> = HashMap()
                         event["event"] = "completed"
                         event["key"] = key
                         eventSink.success(event)
                     }
+
                     Player.STATE_IDLE -> {
                         //no-op
                     }
@@ -526,23 +645,57 @@ internal class BetterPlayer(
 
     }
 
-    fun startCast(playbackPosition: Long){
-        Log.e(TAG, "startCast")
-        Log.e(TAG, "startCast playbackPosition$playbackPosition")
-        val metadata = com.google.android.gms.cast.MediaMetadata(com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE)
-        metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_TITLE, "Title")
-        metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_SUBTITLE, "Subtitle")
-        //metadata.addImage(WebImage(Uri.parse("any-image-url")))
+    fun findDevices(){
 
-        val videoClipUrl = ""//todo get url
+    }
+
+    fun startCast(playbackPosition: Long) {
+        Log.e(TAG, "startCast")
+
+
+        mediaRouter = MediaRouter.getInstance(context)
+        val routes = mediaRouter?.routes
+        Log.e(TAG, "startCast mediaRouter =$routes")
+        mSelector = MediaRouteSelector.Builder()
+            // These are the framework-supported intents
+            .addControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)
+            .build()
+
+        Log.e(TAG, "startCast mSelector = ${mSelector?.isValid}")
+
+        Log.e(TAG, "startCast on playbackPosition =$playbackPosition")
+        mCastContext = CastContext.getSharedInstance(context)
+
+        Log.e(TAG,"mCastContext = $mCastContext")
+
+        mSessionManager = mCastContext.sessionManager
+        Log.e(TAG,"mSessionManager = $mSessionManager")
+
+
+        val intentToJoinUri = Uri.parse("https://castvideos.com/cast/join")
+
+
+        mSessionManager?.addSessionManagerListener(mSessionManagerListener, CastSession::class.java)
+
+        mCastSession = mSessionManager?.currentCastSession
+        Log.e(TAG,"mCastSession = $mCastSession")
+
+        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
+        metadata.putString(MediaMetadata.KEY_TITLE, "Title")
+        metadata.putString(MediaMetadata.KEY_SUBTITLE, "Subtitle")
+        metadata.addImage(WebImage(Uri.parse("any-image-url")))
+
+
         val mediaInfo = MediaInfo.Builder(videoClipUrl)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType(MimeTypes.VIDEO_MP4)
+            .setContentType("videos/mp4")
             .setMetadata(metadata)
+            .setStreamDuration(currentDuration * 1000)
             .build()
-        val mediaItem = MediaQueueItem.Builder(mediaInfo).build()
-       // castPlayer?.loadItem(mediaItem, playbackPosition)
-        //todo whats next
+
+        val remoteMediaClient = mCastSession?.remoteMediaClient
+        Log.e(TAG,"remoteMediaClient = $remoteMediaClient")
+        remoteMediaClient?.load(MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).build())
     }
 
     fun play() {

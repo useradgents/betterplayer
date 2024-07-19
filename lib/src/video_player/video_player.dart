@@ -236,9 +236,11 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             value = value.copyWith(isBuffering: false);
           }
           break;
-
         case VideoEventType.startCast:
           startCast(event.position!);
+          break;
+        case VideoEventType.initCast:
+          initCast();
           break;
         case VideoEventType.play:
           play();
@@ -410,7 +412,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
     await VideoPlayerPlatform.instance
         .setDataSource(_textureId, dataSourceDescription);
+
     return _initializingCompleter.future;
+
   }
 
   @override
@@ -436,6 +440,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   Future<void> play() async {
     value = value.copyWith(isPlaying: true);
     await _applyPlayPause();
+
   }
 
   /// Sets whether or not the video should loop after playing once. See also
@@ -459,7 +464,11 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   Future<void> startCast(Duration position) async {
-   await _videoPlayerPlatform.startCast(position,_textureId);
+      await _videoPlayerPlatform.startCast(position, _textureId);
+  }
+
+  Future<String?> initCast() async {
+    return await _videoPlayerPlatform.initCast(_textureId);
   }
 
   Future<void> _applyPlayPause() async {
@@ -595,7 +604,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _videoPlayerPlatform.setTrackParameters(
         _textureId, width, height, bitrate);
   }
-
 
   Future<void> enablePictureInPicture(
       {double? top, double? left, double? width, double? height}) async {

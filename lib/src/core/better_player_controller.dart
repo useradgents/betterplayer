@@ -608,6 +608,13 @@ class BetterPlayerController {
     }
     await videoPlayerController!.startCast(position);
   }
+
+  Future<String?> initCast() async {
+    if (videoPlayerController == null) {
+     return Future(() => null);
+    }
+    return await videoPlayerController!.initCast();
+  }
   ///Move player to specific position/moment of the video.
   Future<void> seekTo(Duration moment) async {
     if (videoPlayerController == null) {
@@ -1250,4 +1257,7 @@ class BetterPlayerController {
       _tempFiles.forEach((file) => file.delete());
     }
   }
+
+
+
 }

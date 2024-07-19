@@ -105,6 +105,10 @@ abstract class VideoPlayerPlatform {
   Future<void> pause(int? textureId) {
     throw UnimplementedError('pause() has not been implemented.');
   }
+  /// init cast video.
+  Future<String?> initCast(int? textureId) {
+   return Future(() => null);
+  }
   /// cast video.
   Future<void> startCast(Duration? position,int? textureId) {
     throw UnimplementedError('startCast() has not been implemented.');
@@ -468,6 +472,9 @@ enum VideoEventType {
 
   ///start video cast
   startCast,
+
+  ///init video cast
+  initCast,
 
   /// An unknown event has been received.
   unknown,

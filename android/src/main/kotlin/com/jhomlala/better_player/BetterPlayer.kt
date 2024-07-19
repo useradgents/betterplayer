@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -57,6 +58,7 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.SessionManagerListener
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
 import com.jhomlala.better_player.DataSourceUtils.getDataSourceFactory
 import com.jhomlala.better_player.DataSourceUtils.getUserAgent
@@ -96,15 +98,53 @@ internal class BetterPlayer(
     private val customDefaultLoadControl: CustomDefaultLoadControl =
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
-    private var castPlayer: CastPlayer? = null
     private var currentPlayer: Player? = null
     private var currentDuration: Long = 0L
     private var videoClipUrl = ""
+
+
+    private var remoteMediaClient: RemoteMediaClient? = null
+    private var mediaRouter: MediaRouter? = null
+    private var mediaRouteSelector: MediaRouteSelector? = null
+    private val channelName = "uniqueChannelName"
+    private var mCastContext: CastContext? = null
+    private var mSessionManagerListener: SessionManagerListener<CastSession>? = null
     private var mCastSession: CastSession? = null
-    private lateinit var mCastContext: CastContext
-    private var mSessionManager: SessionManager? = null
-    private val mSessionManagerListener = SessionManagerListenerImpl()
-    private var mSelector: MediaRouteSelector? = null
+    private lateinit var mSessionManager: SessionManager
+    private var castSessionEnabled = true
+    private var lastPosition = 0L
+    val mediaRouterCallback = object : MediaRouter.Callback() {
+        private fun updateMyRouteList() {
+            for (route in mediaRouter?.routes ?: emptyList()) {
+                // Save route.getId() however you want (it's a string)
+            }
+        }
+
+        override fun onRouteUnselected(
+            router: MediaRouter,
+            route: MediaRouter.RouteInfo,
+            reason: Int
+        ) {
+            super.onRouteUnselected(router, route, reason)
+            Log.d(ContentValues.TAG, "onRouteUnselected $route")
+        }
+
+        override fun onRouteRemoved(router: MediaRouter, route: MediaRouter.RouteInfo) {
+            super.onRouteRemoved(router, route)
+            Log.d(ContentValues.TAG, "onRouteRemoved $route")
+        }
+
+        override fun onRouteSelected(
+            router: MediaRouter,
+            selectedRoute: MediaRouter.RouteInfo,
+            reason: Int,
+            requestedRoute: MediaRouter.RouteInfo
+        ) {
+            super.onRouteSelected(router, selectedRoute, reason, requestedRoute)
+            Log.d(ContentValues.TAG, "onRouteSelected $router")
+            setData()
+        }
+    }
 
     init {
         val loadBuilder = DefaultLoadControl.Builder()
@@ -122,105 +162,128 @@ internal class BetterPlayer(
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
         setupVideoPlayer(eventChannel, textureEntry, result)
-
-        mSelector?.also { selector ->
-            mediaRouter?.addCallback(selector, mediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
-        }
     }
 
-    private var mediaRouter: MediaRouter? = null
 
-    // Variables to hold the currently selected route and its playback client
-    private var mRoute: MediaRouter.RouteInfo? = null
-    private var remotePlaybackClient: RemotePlaybackClient? = null
-
-    private val mediaRouterCallback = object : MediaRouter.Callback() {
-
-        override fun onRouteSelected(router: MediaRouter, route: MediaRouter.RouteInfo,reason: Int) {
-            Log.d(TAG, "onRouteSelected: route=$route")
-            if (route.supportsControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)) {
-                // Stop local playback (if necessary)
-                // ...
-
-                // Save the new route
-                mRoute = route
-
-                if(mRoute !=null) {
-                    // Attach a new playback client
-                    remotePlaybackClient =
-                        RemotePlaybackClient(context, mRoute!!)
+    private fun setupCastListener() {
+        Log.e("SessionManagerListener", "setupCastListener")
+        try {
+            mSessionManagerListener = object : SessionManagerListener<CastSession> {
+                override fun onSessionEnded(session: CastSession, error: Int) {
+                    Log.e("SessionManagerListener", "onSessionEnded")
+                    onApplicationDisconnected()
+                    castSessionEnabled = false
                 }
-                // Start remote playback (if necessary)
-                // ...
+
+                override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+                    Log.e("SessionManagerListener", "onSessionResumed")
+                    onApplicationConnected(session)
+                    castSessionEnabled = true
+                }
+
+                override fun onSessionResumeFailed(session: CastSession, error: Int) {
+                    Log.e("SessionManagerListener", "onSessionResumeFailed")
+                    onApplicationDisconnected()
+                    castSessionEnabled = false
+                }
+
+                override fun onSessionStarted(session: CastSession, sessionId: String) {
+                    Log.e("SessionManagerListener", "onSessionStarted $sessionId")
+                    onApplicationConnected(session)
+                    castSessionEnabled = true
+                    mCastSession = session
+                    setData()
+                }
+
+                override fun onSessionStartFailed(session: CastSession, error: Int) {
+                    Log.e("SessionManagerListener", "onSessionStartFailed $error")
+                    onApplicationDisconnected()
+                    castSessionEnabled = false
+                }
+
+                override fun onSessionStarting(session: CastSession) {
+                    Log.e("SessionManagerListener", "onSessionStarting")
+                    castSessionEnabled = true
+                }
+
+                override fun onSessionEnding(session: CastSession) {
+                    Log.e("SessionManagerListener", "onSessionEnding")
+                    castSessionEnabled = false
+                }
+
+                override fun onSessionResuming(session: CastSession, sessionId: String) {
+                    Log.e("SessionManagerListener", "onSessionResuming")
+                    castSessionEnabled = true
+                }
+
+                override fun onSessionSuspended(session: CastSession, reason: Int) {
+                    Log.e("SessionManagerListener", "onSessionSuspended")
+                    castSessionEnabled = false
+                }
+
+                private fun onApplicationConnected(castSession: CastSession) {
+                    mCastSession = castSession
+                    Log.e(
+                        "SessionManagerListener",
+                        "onApplicationConnected: ${mCastSession?.sessionId}"
+                    )
+                    castSessionEnabled = true
+                }
+
+                private fun onApplicationDisconnected() {
+                    Log.e("SessionManagerListener", "onApplicationDisconnected")
+                    castSessionEnabled = false
+                }
             }
+        } catch (e: Exception) {
+            Log.e("SessionManList error", e.printStackTrace().toString())
         }
-
-        override fun onRouteUnselected(
-            router: MediaRouter,
-            route: MediaRouter.RouteInfo,
-            reason: Int
-        ) {
-            Log.d(TAG, "onRouteUnselected: route=$route")
-            if (route.supportsControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)) {
-
-                // Changed route: tear down previous client
-                mRoute?.also {
-                    remotePlaybackClient?.release()
-                    remotePlaybackClient = null
-                }
-
-                // Save the new route
-                mRoute = route
-
-                when (reason) {
-                    MediaRouter.UNSELECT_REASON_ROUTE_CHANGED -> {
-                        // Resume local playback (if necessary)
-                        // ...
-                    }
-                }
-            }
+        try {
+            mediaRouter?.addCallback(
+                mediaRouteSelector!!,
+                mediaRouterCallback,
+                MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN
+            )
+        } catch (e: Exception) {
+            Log.e("addCallback error", e.printStackTrace().toString())
         }
+        Log.e("SessionM", " end fun call")
     }
 
 
-    private inner class SessionManagerListenerImpl : SessionManagerListener<CastSession> {
-        override fun onSessionEnded(p0: CastSession, p1: Int) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionEnded")
-        }
-        override fun onSessionEnding(p0: CastSession) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionEnding")
-        }
+    private fun setData() {
+        Log.d(ContentValues.TAG, "setData() called")
+        val movieMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
+        movieMetadata.putString(MediaMetadata.KEY_TITLE, "Test Native Cast")
 
-        override fun onSessionResumeFailed(p0: CastSession, p1: Int) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionResumeFailed" )
-        }
+        val mediaInfo =
+            MediaInfo.Builder("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+                .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+                .setContentType("videos/mp4")
+                .setContentUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+                .setMetadata(movieMetadata)
+                .setStreamDuration(10 * 1000)
+                .build()
 
-        override fun onSessionResumed(p0: CastSession, p1: Boolean) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionResumed")
-        }
 
-        override fun onSessionResuming(p0: CastSession, p1: String) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionResuming")
-        }
+        Log.d(ContentValues.TAG, "setData() mCastSession sessionId ${mCastSession?.sessionId}")
+        remoteMediaClient = mSessionManager.currentCastSession?.remoteMediaClient
+        Log.d(
+            ContentValues.TAG,
+            "setData() remoteMediaClient is not null = ${remoteMediaClient != null}"
+        )
+        remoteMediaClient?.load(MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).build())
+        Log.d(
+            ContentValues.TAG,
+            "setData() remoteMediaClient?.namespace ${remoteMediaClient?.namespace}"
+        )
 
-        override fun onSessionStartFailed(p0: CastSession, p1: Int) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionStartFailed")
-        }
-
-        override fun onSessionStarted(p0: CastSession, p1: String) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionStarted")
-        }
-
-        override fun onSessionStarting(p0: CastSession) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionStarting")
-        }
-
-        override fun onSessionSuspended(p0: CastSession, p1: Int) {
-            Log.e(TAG,"SessionManagerListenerImpl onSessionSuspended")
-        }
-
+        Log.d(
+            ContentValues.TAG,
+            "setData() remoteMediaClient?.mediaInfo ${remoteMediaClient?.mediaInfo}"
+        )
     }
+
 
     fun setDataSource(
         context: Context,
@@ -645,57 +708,42 @@ internal class BetterPlayer(
 
     }
 
-    fun findDevices(){
+    fun findDevices() {
 
+    }
+
+    fun initCast(): String {
+        Log.e(TAG, "initCast called")
+        mediaRouter = MediaRouter.getInstance(context)
+        mCastContext = CastContext.getSharedInstance(context)
+        Log.e(TAG, "mCastContext = $mCastContext")
+        mSessionManager = mCastContext!!.sessionManager
+        mCastSession = mSessionManager.currentCastSession
+        setupCastListener()
+        try {
+            mediaRouteSelector = MediaRouteSelector.Builder()
+                .addControlCategory(MediaControlIntent.CATEGORY_LIVE_VIDEO)
+                .build()
+        } catch (e: Exception) {
+            Log.e(TAG, "mediaRouteSelector failed $e")
+        }
+
+        Log.d(TAG, "mediaRouteSelector  $mediaRouteSelector")
+        val routes = mediaRouter?.routes?.filter { !it.id.contains("DEFAULT_ROUTE") }?.map {
+            "{\"id\":\"${it.id}\", \"description\":\"${it.description}\", \"name\":\"${it.name}\"}"
+        }
+
+
+
+        Log.d(TAG, "showRoutes routes =$routes")
+        val result = "{\"list\":$routes}"
+        return result
     }
 
     fun startCast(playbackPosition: Long) {
         Log.e(TAG, "startCast")
 
 
-        mediaRouter = MediaRouter.getInstance(context)
-        val routes = mediaRouter?.routes
-        Log.e(TAG, "startCast mediaRouter =$routes")
-        mSelector = MediaRouteSelector.Builder()
-            // These are the framework-supported intents
-            .addControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)
-            .build()
-
-        Log.e(TAG, "startCast mSelector = ${mSelector?.isValid}")
-
-        Log.e(TAG, "startCast on playbackPosition =$playbackPosition")
-        mCastContext = CastContext.getSharedInstance(context)
-
-        Log.e(TAG,"mCastContext = $mCastContext")
-
-        mSessionManager = mCastContext.sessionManager
-        Log.e(TAG,"mSessionManager = $mSessionManager")
-
-
-        val intentToJoinUri = Uri.parse("https://castvideos.com/cast/join")
-
-
-        mSessionManager?.addSessionManagerListener(mSessionManagerListener, CastSession::class.java)
-
-        mCastSession = mSessionManager?.currentCastSession
-        Log.e(TAG,"mCastSession = $mCastSession")
-
-        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
-        metadata.putString(MediaMetadata.KEY_TITLE, "Title")
-        metadata.putString(MediaMetadata.KEY_SUBTITLE, "Subtitle")
-        metadata.addImage(WebImage(Uri.parse("any-image-url")))
-
-
-        val mediaInfo = MediaInfo.Builder(videoClipUrl)
-            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType("videos/mp4")
-            .setMetadata(metadata)
-            .setStreamDuration(currentDuration * 1000)
-            .build()
-
-        val remoteMediaClient = mCastSession?.remoteMediaClient
-        Log.e(TAG,"remoteMediaClient = $remoteMediaClient")
-        remoteMediaClient?.load(MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).build())
     }
 
     fun play() {

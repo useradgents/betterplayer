@@ -11,6 +11,8 @@ import 'package:better_player/src/core/better_player_controller.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:better_player/src/video_player/video_player.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import '../Device.dart';
 
 class BetterPlayerMaterialControls extends StatefulWidget {
   ///Callback used to send information if player bar is hidden or not
@@ -43,6 +45,7 @@ class _BetterPlayerMaterialControlsState
   VideoPlayerController? _controller;
   BetterPlayerController? _betterPlayerController;
   StreamSubscription? _controlsVisibilityStreamSubscription;
+  Future<String?>? _routeList;
 
   BetterPlayerControlsConfiguration get _controlsConfiguration =>
       widget.controlsConfiguration;
@@ -579,7 +582,7 @@ class _BetterPlayerMaterialControlsState
   ) {
     return BetterPlayerMaterialClickableWidget(
       onTap: () {
-        _onVideoCast();
+        _onInitVideoCast();
       },
       child: AnimatedOpacity(
         opacity: controlsNotVisible ? 0.0 : 1.0,
@@ -719,6 +722,12 @@ class _BetterPlayerMaterialControlsState
     }
   }
 
+  void _onInitVideoCast(){
+    _routeList = _betterPlayerController!.initCast();
+    print("_onInitVideoCast return : $_routeList");
+    _dialogBuilder(context);
+  }
+
   void _onVideoCast(){
     _betterPlayerController!.startCast(_latestValue!.position);
   }
@@ -794,6 +803,103 @@ class _BetterPlayerMaterialControlsState
     return CircularProgressIndicator(
       valueColor:
           AlwaysStoppedAnimation<Color>(_controlsConfiguration.loadingColor),
+    );
+  }
+
+  Future<void> _dialogBuilder(BuildContext context) {
+    print("show dialog");
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose cast device'),
+          content: FutureBuilder<String?>(
+            future: _routeList,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error.toString()}',
+                  ),
+                );
+              } else if (!snapshot.hasData) {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (snapshot.data!.isNotEmpty) {
+                var result = snapshot.data!;
+                var dataList = jsonDecode(result);
+
+                print("***** $dataList");
+                List<dynamic> mList = dataList['list'];
+
+                List<Device> devices = List.empty(growable: true);
+
+                for (var device in mList) {
+                  print(device);
+                  print("item id : ${device['id']}");
+                  print("item description : ${device['description']}");
+                  print("item name : ${device['name']}");
+                  var mDevice = Device(
+                      id: device['id'],
+                      name: device['name'],
+                      description: device['description']);
+                  devices.add(mDevice);
+                }
+                print(devices.length);
+                if (devices.length > 0) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: devices.map((device) {
+                      return ListTile(
+                        title: Text(device.name),
+                        onTap: () {
+                          //_connectAndPlayMedia(context, device);
+                          print("on tap device ${device.name}");
+                        },
+                      );
+                    }).toList(),
+                  );
+                }
+                else {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: Text(
+                          'No Chromecast founded',
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Text(
+                      'No Chromecast founded',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ), //content end
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

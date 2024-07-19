@@ -41,7 +41,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private var pipRunnable: Runnable? = null
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
+        Log.e(TAG, "onAttachedToEngine $activity")
         val loader = FlutterLoader()
+
         flutterState = FlutterState(
             binding.applicationContext,
             binding.binaryMessenger, object : KeyForAssetFn {
@@ -76,6 +78,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        Log.e(TAG, "onAttachedToActivity $activity")
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
@@ -97,6 +100,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             result.error("no_activity", "better_player plugin requires a foreground activity", null)
             return
         }
+        Log.d(TAG, "call.method = ${call.method}")
         when (call.method) {
             INIT_METHOD -> disposeAllPlayers()
             CREATE_METHOD -> {
@@ -116,19 +120,22 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                         call.argument(BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
                     )
                 }
+
                 val player = BetterPlayer(
                     flutterState?.applicationContext!!, eventChannel, handle,
                     customDefaultLoadControl, result
                 )
                 videoPlayers.put(handle.id(), player)
             }
+
             PRE_CACHE_METHOD -> preCache(call, result)
             STOP_PRE_CACHE_METHOD -> stopPreCache(call, result)
             CLEAR_CACHE_METHOD -> clearCache(result)
             else -> {
-                val textureId = (call.argument<Any>(TEXTURE_ID_PARAMETER) as Number?)!!.toLong()
-                val player = videoPlayers[textureId]
-                if (player == null) {
+                val textureId = (call.argument<Any>(TEXTURE_ID_PARAMETER) as Number?)?.toLong()
+
+                val player = videoPlayers?.get(textureId ?: 0L)
+                if (player == null || textureId == null) {
                     result.error(
                         "Unknown textureId",
                         "No video player associated with texture id $textureId",
@@ -151,41 +158,56 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             SET_DATA_SOURCE_METHOD -> {
                 setDataSource(call, result, player)
             }
+
             SET_LOOPING_METHOD -> {
                 player.setLooping(call.argument(LOOPING_PARAMETER)!!)
                 result.success(null)
             }
+
             SET_VOLUME_METHOD -> {
                 player.setVolume(call.argument(VOLUME_PARAMETER)!!)
                 result.success(null)
             }
-            START_CAST ->{
+
+            START_CAST -> {
                 player.startCast(player.position)
                 result.success(null)
             }
+
+            INIT_CAST -> {
+                Log.d(TAG, "initCast INIT_CAST call.method")
+                val list = player.initCast()
+                result.success(list)
+            }
+
             PLAY_METHOD -> {
                 setupNotification(player)
                 player.play()
                 result.success(null)
             }
+
             PAUSE_METHOD -> {
                 player.pause()
                 result.success(null)
             }
+
             SEEK_TO_METHOD -> {
                 val location = (call.argument<Any>(LOCATION_PARAMETER) as Number?)!!.toInt()
                 player.seekTo(location)
                 result.success(null)
             }
+
             POSITION_METHOD -> {
                 result.success(player.position)
                 player.sendBufferingUpdate(false)
             }
+
             ABSOLUTE_POSITION_METHOD -> result.success(player.absolutePosition)
             SET_SPEED_METHOD -> {
                 player.setSpeed(call.argument(SPEED_PARAMETER)!!)
                 result.success(null)
             }
+
             SET_TRACK_PARAMETERS_METHOD -> {
                 player.setTrackParameters(
                     call.argument(WIDTH_PARAMETER)!!,
@@ -194,17 +216,21 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 )
                 result.success(null)
             }
+
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
                 enablePictureInPicture(player)
                 result.success(null)
             }
+
             DISABLE_PICTURE_IN_PICTURE_METHOD -> {
                 disablePictureInPicture(player)
                 result.success(null)
             }
+
             IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD -> result.success(
                 isPictureInPictureSupported()
             )
+
             SET_AUDIO_TRACK_METHOD -> {
                 val name = call.argument<String?>(NAME_PARAMETER)
                 val index = call.argument<Int?>(INDEX_PARAMETER)
@@ -213,6 +239,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 }
                 result.success(null)
             }
+
             SET_MIX_WITH_OTHERS_METHOD -> {
                 val mixWitOthers = call.argument<Boolean?>(
                     MIX_WITH_OTHERS_PARAMETER
@@ -221,10 +248,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                     player.setMixWithOthers(mixWitOthers)
                 }
             }
+
             DISPOSE_METHOD -> {
                 dispose(player, textureId)
                 result.success(null)
             }
+
             else -> result.notImplemented()
         }
     }
@@ -394,6 +423,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             videoPlayers.valueAt(index).disposeRemoteNotifications()
         }
     }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> getParameter(parameters: Map<String, Any?>?, key: String, defaultValue: T): T {
         if (parameters?.containsKey(key) == true) {
@@ -534,6 +564,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val SET_LOOPING_METHOD = "setLooping"
         private const val SET_VOLUME_METHOD = "setVolume"
         private const val START_CAST = "startCast"
+        private const val INIT_CAST = "initCast"
         private const val PLAY_METHOD = "play"
         private const val PAUSE_METHOD = "pause"
         private const val SEEK_TO_METHOD = "seekTo"

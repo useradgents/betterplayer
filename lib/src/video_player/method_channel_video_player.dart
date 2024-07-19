@@ -167,6 +167,14 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       },
     );
   }
+  @override
+  Future<String?> initCast(int? textureId) {
+    log('initCast: methode call');
+    return _channel.invokeMethod<String>('initCast',
+      <String, dynamic>{
+        'textureId': textureId,
+      },);
+  }
 
   @override
   Future<void> setVolume(int? textureId, double volume) {
@@ -409,6 +417,12 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         case 'pause':
           return VideoEvent(
             eventType: VideoEventType.pause,
+            key: key,
+          );
+
+        case 'initCast':
+          return VideoEvent(
+            eventType: VideoEventType.initCast,
             key: key,
           );
 

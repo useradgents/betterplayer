@@ -599,14 +599,14 @@ class BetterPlayerController {
     _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
   }
 
-  Future<void> startCast(Duration position) async {
+  Future<void> startCast(Duration position,String deviceId) async {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
     if (videoPlayerController?.value.duration == null) {
       throw StateError("The video has not been initialized yet.");
     }
-    await videoPlayerController!.startCast(position);
+    await videoPlayerController!.startCast(position, deviceId);
   }
 
   Future<String?> initCast() async {
@@ -1091,9 +1091,6 @@ class BetterPlayerController {
         break;
       case VideoEventType.pause:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
-        break;
-      case VideoEventType.startCast:
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.startCast));
         break;
       case VideoEventType.seek:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.seekTo));

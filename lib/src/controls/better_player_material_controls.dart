@@ -723,13 +723,14 @@ class _BetterPlayerMaterialControlsState
   }
 
   void _onInitVideoCast(){
+    _betterPlayerController?.pause();
     _routeList = _betterPlayerController!.initCast();
     print("_onInitVideoCast return : $_routeList");
     _dialogBuilder(context);
   }
 
-  void _onVideoCast(){
-    _betterPlayerController!.startCast(_latestValue!.position);
+  void _onVideoCast(String deviceId){
+    _betterPlayerController!.startCast(_latestValue!.position, deviceId);
   }
 
   void _startHideTimer() {
@@ -855,8 +856,9 @@ class _BetterPlayerMaterialControlsState
                       return ListTile(
                         title: Text(device.name),
                         onTap: () {
-                          //_connectAndPlayMedia(context, device);
+                          _onVideoCast(device.id);
                           print("on tap device ${device.name}");
+                          Navigator.of(context).pop();
                         },
                       );
                     }).toList(),

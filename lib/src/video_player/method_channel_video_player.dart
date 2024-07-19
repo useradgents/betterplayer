@@ -156,14 +156,15 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> startCast(Duration? position,int? textureId) {
+  Future<void> startCast(Duration? position,int? textureId, String deviceId) {
 
-    log('startCast: methode call');
+    log('startCast: call with device = $deviceId');
     return _channel.invokeMethod<void>(
       'startCast',
       <String, dynamic>{
         'location': position!.inMilliseconds,
         'textureId': textureId,
+        'selectedDeviceId': deviceId,
       },
     );
   }
@@ -418,19 +419,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.pause,
             key: key,
-          );
-
-        case 'initCast':
-          return VideoEvent(
-            eventType: VideoEventType.initCast,
-            key: key,
-          );
-
-        case 'startCast':
-          return VideoEvent(
-            eventType: VideoEventType.startCast,
-            key: key,
-            position: Duration(milliseconds: map['position'] as int),
           );
 
         case 'seek':

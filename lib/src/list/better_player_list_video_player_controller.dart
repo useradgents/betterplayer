@@ -21,14 +21,6 @@ class BetterPlayerListVideoPlayerController {
     _betterPlayerController?.seekTo(duration);
   }
 
-  void startCast(Duration duration){
-    _betterPlayerController?.startCast(duration);
-  }
-
-  Future<String?>? initCast(){
-   return _betterPlayerController?.initCast();
-  }
-
   // ignore: use_setters_to_change_properties
   void setBetterPlayerController(
       BetterPlayerController? betterPlayerController) {

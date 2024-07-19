@@ -784,8 +784,8 @@ class _BetterPlayerCupertinoControlsState
     _dialogBuilder(context);
   }
 
-  void _onVideoCast() {
-    _betterPlayerController!.startCast(_latestValue!.position);
+  void _onVideoCast(String deviceId) {
+    _betterPlayerController!.startCast(_latestValue!.position, deviceId);
   }
 
   void _startHideTimer() {

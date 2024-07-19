@@ -110,7 +110,7 @@ abstract class VideoPlayerPlatform {
    return Future(() => null);
   }
   /// cast video.
-  Future<void> startCast(Duration? position,int? textureId) {
+  Future<void> startCast(Duration? position,int? textureId, String deviceId) {
     throw UnimplementedError('startCast() has not been implemented.');
   }
 
@@ -387,6 +387,7 @@ class VideoEvent {
     this.size,
     this.buffered,
     this.position,
+    this.castDevice,
   });
 
   /// The type of the event.
@@ -415,6 +416,9 @@ class VideoEvent {
   ///Seek position
   final Duration? position;
 
+  ///cast device id
+  final String? castDevice;
+
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
@@ -424,6 +428,7 @@ class VideoEvent {
             eventType == other.eventType &&
             duration == other.duration &&
             size == other.size &&
+            castDevice == other.castDevice &&
             listEquals(buffered, other.buffered);
   }
 
@@ -469,12 +474,6 @@ enum VideoEventType {
 
   /// Picture in picture mode has been dismissed
   pipStop,
-
-  ///start video cast
-  startCast,
-
-  ///init video cast
-  initCast,
 
   /// An unknown event has been received.
   unknown,

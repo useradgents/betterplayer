@@ -102,7 +102,6 @@ internal class BetterPlayer(
     private var currentDuration: Long = 0L
     private var videoClipUrl = ""
 
-
     private var remoteMediaClient: RemoteMediaClient? = null
     private var mediaRouter: MediaRouter? = null
     private var mediaRouteSelector: MediaRouteSelector? = null
@@ -142,7 +141,6 @@ internal class BetterPlayer(
         ) {
             super.onRouteSelected(router, selectedRoute, reason, requestedRoute)
             Log.d(ContentValues.TAG, "onRouteSelected $router")
-            setData()
         }
     }
 
@@ -238,6 +236,9 @@ internal class BetterPlayer(
         } catch (e: Exception) {
             Log.e("SessionManList error", e.printStackTrace().toString())
         }
+        mCastContext!!.sessionManager.addSessionManagerListener(
+            mSessionManagerListener!!, CastSession::class.java
+        )
         try {
             mediaRouter?.addCallback(
                 mediaRouteSelector!!,
@@ -257,14 +258,13 @@ internal class BetterPlayer(
         movieMetadata.putString(MediaMetadata.KEY_TITLE, "Test Native Cast")
 
         val mediaInfo =
-            MediaInfo.Builder("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+            MediaInfo.Builder(videoClipUrl)
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setContentType("videos/mp4")
-                .setContentUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+                .setContentUrl(videoClipUrl)
                 .setMetadata(movieMetadata)
-                .setStreamDuration(10 * 1000)
+                //.setStreamDuration(100)
                 .build()
-
 
         Log.d(ContentValues.TAG, "setData() mCastSession sessionId ${mCastSession?.sessionId}")
         remoteMediaClient = mSessionManager.currentCastSession?.remoteMediaClient
@@ -277,13 +277,19 @@ internal class BetterPlayer(
             ContentValues.TAG,
             "setData() remoteMediaClient?.namespace ${remoteMediaClient?.namespace}"
         )
-
-        Log.d(
-            ContentValues.TAG,
-            "setData() remoteMediaClient?.mediaInfo ${remoteMediaClient?.mediaInfo}"
-        )
+        remoteMediaClient?.seek(lastPosition)
     }
 
+    private fun startSession(route: MediaRouter.RouteInfo?) {
+        Log.d(TAG,
+            "startSession route ${route?.name}/${route?.id}"
+        )
+        val castIntent: Intent = Intent()
+        castIntent.putExtra("CAST_INTENT_TO_CAST_ROUTE_ID_KEY", route?.id)
+        castIntent.putExtra("CAST_INTENT_TO_CAST_DEVICE_NAME_KEY", route?.name)
+        castIntent.putExtra("CAST_INTENT_TO_CAST_NO_TOAST_KEY", false)
+        mSessionManager.startSession(castIntent)
+    }
 
     fun setDataSource(
         context: Context,
@@ -708,10 +714,6 @@ internal class BetterPlayer(
 
     }
 
-    fun findDevices() {
-
-    }
-
     fun initCast(): String {
         Log.e(TAG, "initCast called")
         mediaRouter = MediaRouter.getInstance(context)
@@ -728,8 +730,9 @@ internal class BetterPlayer(
             Log.e(TAG, "mediaRouteSelector failed $e")
         }
 
-        Log.d(TAG, "mediaRouteSelector  $mediaRouteSelector")
+        Log.d(TAG, "mediaRouter?.routes  ${mediaRouter?.routes}")
         val routes = mediaRouter?.routes?.filter { !it.id.contains("DEFAULT_ROUTE") }?.map {
+        //val routes = mediaRouter?.routes?.map {
             "{\"id\":\"${it.id}\", \"description\":\"${it.description}\", \"name\":\"${it.name}\"}"
         }
 
@@ -740,15 +743,17 @@ internal class BetterPlayer(
         return result
     }
 
-    fun startCast(playbackPosition: Long) {
-        Log.e(TAG, "startCast")
-
-
+    fun startCast(playbackPosition: Long, deviceId: String?) {
+        lastPosition = playbackPosition
+        Log.e(TAG, "startCast $deviceId")
+        val route = mediaRouter?.routes?.find { it.id == deviceId }
+        startSession(route)
     }
 
     fun play() {
         Log.e(TAG, "play***")
         exoPlayer?.playWhenReady = true
+        initCast()
     }
 
     fun pause() {

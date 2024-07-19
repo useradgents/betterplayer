@@ -5,6 +5,7 @@ package com.jhomlala.better_player
 
 import android.app.Activity
 import android.app.PictureInPictureParams
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -170,7 +171,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             }
 
             START_CAST -> {
-                player.startCast(player.position)
+                val deviceId = call.argument<String>("selectedDeviceId")
+                Log.d(ContentValues.TAG, "selectDevice deviceId = $deviceId")
+
+                player.startCast(player.position, deviceId)
                 result.success(null)
             }
 

@@ -236,12 +236,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             value = value.copyWith(isBuffering: false);
           }
           break;
-        case VideoEventType.startCast:
-          startCast(event.position!);
-          break;
-        case VideoEventType.initCast:
-          initCast();
-          break;
         case VideoEventType.play:
           play();
           break;
@@ -463,8 +457,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _videoPlayerPlatform.setLooping(_textureId, value.isLooping);
   }
 
-  Future<void> startCast(Duration position) async {
-      await _videoPlayerPlatform.startCast(position, _textureId);
+  Future<void> startCast(Duration position, String deviceId) async {
+      await _videoPlayerPlatform.startCast(position, _textureId, deviceId);
   }
 
   Future<String?> initCast() async {

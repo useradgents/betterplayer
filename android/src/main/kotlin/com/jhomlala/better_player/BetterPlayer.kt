@@ -201,7 +201,6 @@ internal class BetterPlayer(
 
                 override fun onSessionStarting(session: CastSession) {
                     Log.e("SessionManagerListener", "onSessionStarting")
-                    castSessionEnabled = true
                 }
 
                 override fun onSessionEnding(session: CastSession) {
@@ -263,7 +262,7 @@ internal class BetterPlayer(
                 .setContentType("videos/mp4")
                 .setContentUrl(videoClipUrl)
                 .setMetadata(movieMetadata)
-                //.setStreamDuration(100)
+                //.setStreamDuration(1000)
                 .build()
 
         Log.d(ContentValues.TAG, "setData() mCastSession sessionId ${mCastSession?.sessionId}")
@@ -277,11 +276,40 @@ internal class BetterPlayer(
             ContentValues.TAG,
             "setData() remoteMediaClient?.namespace ${remoteMediaClient?.namespace}"
         )
-        remoteMediaClient?.seek(lastPosition)
+        //remoteMediaClient?.seek(lastPosition)
+
+    }
+
+    fun playCastPlayer() {
+        Log.d(TAG,"***- playCastPlayer ${remoteMediaClient == null}")
+        remoteMediaClient?.play()
+    }
+
+    fun pauseCastPlayer() {
+        Log.d(TAG,"***- pauseCastPlayer ${remoteMediaClient!!.isPlaying()}")
+        remoteMediaClient!!.pause()
+
+        mSessionManager.currentCastSession!!.remoteMediaClient!!.isPlaying
+    }
+
+    fun seekCastTo(location: Int) {
+        //MediaSeekOptions
+        val streamDuration = remoteMediaClient?.mediaInfo?.streamDuration ?: 0L
+        val position = remoteMediaClient?.mediaStatus?.streamPosition ?: 0L
+        //remoteMediaClient?.seek(streamDuration-500)
+        Log.d(ContentValues.TAG, "seek position = $position/$streamDuration")
+        if (lastPosition == 0L)
+            lastPosition = position
+        remoteMediaClient?.seek(lastPosition + 5000)
+        lastPosition = position + 5000
+    }
+    fun disconnectCast(){
+        mSessionManager.endCurrentSession(true)
     }
 
     private fun startSession(route: MediaRouter.RouteInfo?) {
-        Log.d(TAG,
+        Log.d(
+            TAG,
             "startSession route ${route?.name}/${route?.id}"
         )
         val castIntent: Intent = Intent()
@@ -732,7 +760,7 @@ internal class BetterPlayer(
 
         Log.d(TAG, "mediaRouter?.routes  ${mediaRouter?.routes}")
         val routes = mediaRouter?.routes?.filter { !it.id.contains("DEFAULT_ROUTE") }?.map {
-        //val routes = mediaRouter?.routes?.map {
+            //val routes = mediaRouter?.routes?.map {
             "{\"id\":\"${it.id}\", \"description\":\"${it.description}\", \"name\":\"${it.name}\"}"
         }
 

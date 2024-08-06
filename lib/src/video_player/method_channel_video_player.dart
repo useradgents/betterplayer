@@ -146,6 +146,15 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> playCast(int? textureId) {
+    log('playCast : methode call');
+    return _channel.invokeMethod<void>(
+      'playCast',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
   Future<void> pause(int? textureId) {
 
     log('pause: methode call');
@@ -154,10 +163,28 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       <String, dynamic>{'textureId': textureId},
     );
   }
+  @override
+  Future<void> pauseCast(int? textureId) {
+
+    log('pauseCast: methode call');
+    return _channel.invokeMethod<void>(
+      'pauseCast',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
+  Future<void> disconnectCast(int? textureId){
+
+    log('disconnectCast: methode call');
+    return _channel.invokeMethod<void>(
+      'disconnectCast',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
 
   @override
   Future<void> startCast(Duration? position,int? textureId, String deviceId) {
-
     log('startCast: call with device = $deviceId');
     return _channel.invokeMethod<void>(
       'startCast',
@@ -437,6 +464,12 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         case 'pipStop':
           return VideoEvent(
             eventType: VideoEventType.pipStop,
+            key: key,
+          );
+
+        case 'startCast':
+          return VideoEvent(
+            eventType: VideoEventType.startCast,
             key: key,
           );
 

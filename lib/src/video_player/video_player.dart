@@ -183,7 +183,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       StreamController.broadcast();
   final Completer<void> _creatingCompleter = Completer<void>();
   int? _textureId;
-
+  bool _isCasting = false;
   Timer? _timer;
   bool _isDisposed = false;
   late Completer<void> _initializingCompleter;
@@ -196,6 +196,12 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// on the plugin.
   @visibleForTesting
   int? get textureId => _textureId;
+
+  bool get isCasting => _isCasting;
+
+  set isCasting(bool value) {
+    _isCasting;
+  }
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> _create() async {
@@ -408,7 +414,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         .setDataSource(_textureId, dataSourceDescription);
 
     return _initializingCompleter.future;
-
   }
 
   @override
@@ -434,7 +439,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   Future<void> play() async {
     value = value.copyWith(isPlaying: true);
     await _applyPlayPause();
-
   }
 
   /// Sets whether or not the video should loop after playing once. See also
@@ -450,6 +454,22 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _applyPlayPause();
   }
 
+  /// Pauses the video.
+  Future<void> pauseCast() async {
+    await _videoPlayerPlatform.pauseCast(_textureId);
+  }
+
+  Future<void> playCast() async {
+    await _videoPlayerPlatform.playCast(_textureId);
+  }
+
+  Future<void> disconnectCast() async {
+    await _videoPlayerPlatform.disconnectCast(_textureId);
+  }
+  Future<void> seekCastTo(Duration? position) async {
+    await _videoPlayerPlatform.seekCastTo(_textureId, position);
+  }
+
   Future<void> _applyLooping() async {
     if (!_created || _isDisposed) {
       return;
@@ -458,7 +478,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   Future<void> startCast(Duration position, String deviceId) async {
-      await _videoPlayerPlatform.startCast(position, _textureId, deviceId);
+    await _videoPlayerPlatform.startCast(position, _textureId, deviceId);
   }
 
   Future<String?> initCast() async {

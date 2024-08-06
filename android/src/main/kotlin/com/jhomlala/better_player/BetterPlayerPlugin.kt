@@ -184,6 +184,25 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 result.success(list)
             }
 
+            PLAY_CAST_METHOD -> {
+                Log.d(TAG, "PLAY_CAST_METHOD call.method")
+                player.playCastPlayer()
+                result.success(null)
+            }
+
+            PAUSE_CAST_METHOD -> {
+                Log.d(TAG, "PAUSE_CAST_METHOD call.method")
+                player.pauseCastPlayer()
+                result.success(null)
+            }
+
+            SEEK_CAST_TO_METHOD -> {
+                Log.d(TAG, "SEEK_CAST_TO_METHOD call.method")
+                val location = (call.argument<Any>(LOCATION_PARAMETER) as Number?)!!.toInt()
+                player.seekCastTo(location)
+                result.success(null)
+            }
+
             PLAY_METHOD -> {
                 setupNotification(player)
                 player.play()
@@ -255,6 +274,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
             DISPOSE_METHOD -> {
                 dispose(player, textureId)
+                result.success(null)
+            }
+            DISCONNECT_CAST ->{
+                player.disconnectCast()
                 result.success(null)
             }
 
@@ -568,10 +591,14 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val SET_LOOPING_METHOD = "setLooping"
         private const val SET_VOLUME_METHOD = "setVolume"
         private const val START_CAST = "startCast"
+        private const val DISCONNECT_CAST = "disconnectCast"
         private const val INIT_CAST = "initCast"
         private const val PLAY_METHOD = "play"
         private const val PAUSE_METHOD = "pause"
         private const val SEEK_TO_METHOD = "seekTo"
+        private const val PLAY_CAST_METHOD = "playCast"
+        private const val PAUSE_CAST_METHOD = "pauseCast"
+        private const val SEEK_CAST_TO_METHOD = "seekCastTo"
         private const val POSITION_METHOD = "position"
         private const val ABSOLUTE_POSITION_METHOD = "absolutePosition"
         private const val SET_SPEED_METHOD = "setSpeed"

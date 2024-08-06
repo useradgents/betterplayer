@@ -100,14 +100,26 @@ abstract class VideoPlayerPlatform {
   Future<void> play(int? textureId) {
     throw UnimplementedError('play() has not been implemented.');
   }
+  /// Starts the video playback.
+  Future<void> playCast(int? textureId) {
+    throw UnimplementedError('playCast() has not been implemented.');
+  }
 
   /// Stops the video playback.
   Future<void> pause(int? textureId) {
     throw UnimplementedError('pause() has not been implemented.');
   }
+  /// Stops the video playback.
+  Future<void> pauseCast(int? textureId) {
+    throw UnimplementedError('pauseCast() has not been implemented.');
+  }
   /// init cast video.
   Future<String?> initCast(int? textureId) {
    return Future(() => null);
+  }
+  /// disconnect cast video.
+  Future<void> disconnectCast(int? textureId) {
+    throw UnimplementedError('pauseCast() has not been implemented.');
   }
   /// cast video.
   Future<void> startCast(Duration? position,int? textureId, String deviceId) {
@@ -133,6 +145,10 @@ abstract class VideoPlayerPlatform {
   /// Sets the video position to a [Duration] from the start.
   Future<void> seekTo(int? textureId, Duration? position) {
     throw UnimplementedError('seekTo() has not been implemented.');
+  }
+  /// Sets the video position to a [Duration] from the start.
+  Future<void> seekCastTo(int? textureId, Duration? position) {
+    throw UnimplementedError('seekCastTo() has not been implemented.');
   }
 
   /// Gets the video position as [Duration] from the start.
@@ -474,6 +490,8 @@ enum VideoEventType {
 
   /// Picture in picture mode has been dismissed
   pipStop,
+
+  startCast,
 
   /// An unknown event has been received.
   unknown,

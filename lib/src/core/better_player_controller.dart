@@ -62,9 +62,14 @@ class BetterPlayerController {
 
   ///Flag used to store full screen mode state.
   bool _isFullScreen = false;
+  bool _isCastStarted = false;
+  set isCastStarted(bool value){
+    _isCastStarted = value;
+  }
 
   ///Flag used to store full screen mode state.
   bool get isFullScreen => _isFullScreen;
+  bool get isCastStarted => _isCastStarted;
 
   ///Time when last progress event was sent
   int _lastPositionSelection = 0;
@@ -598,6 +603,14 @@ class BetterPlayerController {
     await videoPlayerController!.pause();
     _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
   }
+  ///Stop video playback.
+  Future<void> pauseCast() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+
+    await videoPlayerController!.pauseCast();
+  }
 
   Future<void> startCast(Duration position,String deviceId) async {
     if (videoPlayerController == null) {
@@ -607,6 +620,8 @@ class BetterPlayerController {
       throw StateError("The video has not been initialized yet.");
     }
     await videoPlayerController!.startCast(position, deviceId);
+    _isCastStarted = true;
+    _postEvent(BetterPlayerEvent(BetterPlayerEventType.startCast));
   }
 
   Future<String?> initCast() async {
@@ -1117,6 +1132,9 @@ class BetterPlayerController {
         break;
       case VideoEventType.bufferingEnd:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.bufferingEnd));
+        break;
+      case VideoEventType.startCast:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.startCast));
         break;
       default:
 

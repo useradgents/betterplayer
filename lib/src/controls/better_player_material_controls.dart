@@ -580,22 +580,32 @@ class _BetterPlayerMaterialControlsState
   Widget _buildChromeCastButton(
     VideoPlayerController? controller,
   ) {
+    var icon = null;
+    if (controller?.isCasting == true)
+      icon = Icon(_controlsConfiguration.screenCastConnectedIcon,
+          color: _controlsConfiguration.iconsColor);
+    else
+      icon = Icon(
+        _controlsConfiguration.screenCastIcon,
+        color: _controlsConfiguration.iconsColor,
+      );
     return BetterPlayerMaterialClickableWidget(
       onTap: () {
-        _onInitVideoCast();
+        print('_buildChromeCastButton: methode call ${_controller?.isCasting}');
+        if (_betterPlayerController?.isCastStarted  == true)
+          _controlDialogBuilder(context);
+        else {
+          _onInitVideoCast();
+        }
       },
       child: AnimatedOpacity(
         opacity: controlsNotVisible ? 0.0 : 1.0,
         duration: _controlsConfiguration.controlsHideTime,
         child: ClipRect(
           child: Container(
-            height: _controlsConfiguration.controlBarHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(
-              _controlsConfiguration.screenCastIcon,
-              color: _controlsConfiguration.iconsColor,
-            ),
-          ),
+              height: _controlsConfiguration.controlBarHeight,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: icon),
         ),
       ),
     );
@@ -722,14 +732,19 @@ class _BetterPlayerMaterialControlsState
     }
   }
 
-  void _onInitVideoCast(){
+  void _onInitVideoCast() {
     _betterPlayerController?.pause();
     _routeList = _betterPlayerController!.initCast();
     print("_onInitVideoCast return : $_routeList");
     _dialogBuilder(context);
   }
 
-  void _onVideoCast(String deviceId){
+  void _onVideoCast(String deviceId) {
+    print('_onVideoCast: methode call ${_controller?.isCasting}');
+    _controller?.isCasting = true;
+    print('_onVideoCast: methode call ${_controller?.isCasting}');
+   _betterPlayerController?.isCastStarted = true;
+    print('_onVideoCast: methode call ${_betterPlayerController?.isCastStarted}');
     _betterPlayerController!.startCast(_latestValue!.position, deviceId);
   }
 
@@ -863,8 +878,7 @@ class _BetterPlayerMaterialControlsState
                       );
                     }).toList(),
                   );
-                }
-                else {
+                } else {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -900,6 +914,75 @@ class _BetterPlayerMaterialControlsState
               },
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _controlDialogBuilder(BuildContext context) {
+    print("show dialog");
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cast Control'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                height: 30,
+              ),
+              MaterialButton(
+                color: Colors.teal,
+                textColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                onPressed: () {
+                  _controller?.disconnectCast();
+                  Navigator.of(context).pop();
+                  _betterPlayerController?.isCastStarted = false;
+                },
+                child: const Text('disconnect device'),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  MaterialButton(
+                    color: Colors.teal,
+                    textColor: Colors.white,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    onPressed: () {
+                      _controller?.playCast();
+                    },
+                    child: const Text('play'),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  MaterialButton(
+                    color: Colors.teal,
+                    textColor: Colors.white,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    onPressed: () {
+                      _controller?.pauseCast();
+                    },
+                    child: const Text('pause'),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                ],
+              )
+            ],
+          ),
         );
       },
     );

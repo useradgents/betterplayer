@@ -139,6 +139,8 @@ class BetterPlayerControlsConfiguration {
 
   ///Icon of the screen cast menu item from overflow menu
   final IconData screenCastIcon;
+  ///Icon of the screen connected cast menu item from overflow menu
+  final IconData screenCastConnectedIcon;
 
   ///Color of overflow menu icons
   final Color overflowMenuIconsColor;
@@ -225,6 +227,7 @@ class BetterPlayerControlsConfiguration {
     this.enableReplay = true,
     this.enableScreenCast = true,
     this.screenCastIcon = Icons.cast,
+    this.screenCastConnectedIcon = Icons.cast_connected,
   });
 
   factory BetterPlayerControlsConfiguration.white() {
